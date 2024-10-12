@@ -201,9 +201,10 @@
         document.getElementById('btn-right').addEventListener('mouseup', () => rotateRight = false);
         document.getElementById('btn-shoot').addEventListener('mousedown', () => {
             playerBullets.push({
-                x: player.x,
-                y: player.y,
-                angle: player.angle
+                // 총알을 플레이어의 중앙에서 발사
+                x: player.x + Math.cos(player.angle) * 15,  // 플레이어의 현재 각도를 기준으로 초기 위치 설정
+                y: player.y + Math.sin(player.angle) * 15,
+                angle: player.angle  // 플레이어의 각도에 맞게 총알의 각도 설정
             });
         });
 
@@ -218,8 +219,9 @@
         document.getElementById('btn-right').addEventListener('touchend', () => rotateRight = false);
         document.getElementById('btn-shoot').addEventListener('touchstart', () => {
             playerBullets.push({
-                x: player.x,
-                y: player.y,
+                // 터치 기반 슈팅 버튼을 눌렀을 때 총알 발사
+                x: player.x + Math.cos(player.angle) * 15,
+                y: player.y + Math.sin(player.angle) * 15,
                 angle: player.angle
             });
         });
