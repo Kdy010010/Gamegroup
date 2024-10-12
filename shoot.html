@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shooting Game</title>
+    <style>
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: #000;
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script>const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// 플레이어 설정
+let player = {
+    x: canvas.width / 2 - 25,
+    y: canvas.height - 80,
+    width: 50,
+    height: 50,
+    speed: 7
+};
+
+// 총알 설정
+let bullets = [];
+let bulletWidth = 5;
+let bulletHeight = 20;
+let bulletSpeed = 7;
+
+// 적 설정
+let enemies = [];
+let enemyWidth = 50;
+let enemyHeight = 50;
+let enemySpeed = 3;
+let enemyGap = 200;
+
+// 게임 상태
+let gameOver = false;
+let score = 0;
+
+// 플레이어 총알 발사
+function shoot() {
+    bullets.push({ x: player.x + player.width / 2 - bulletWidth / 2, y: player.y });
+}
+
+// 적 생성
+function createEnemy() {
+    const enemyX = Math.random() * (canvas.width - enemyWidth);
+    const enemyY = -enemyHeight;
+    enemies.push({ x: enemyX, y: enemyY });
+}
+
+// 적 업데이트 및 그리기
+function updateEnemies() {
+    for (let i = 0; i < enemies.length; i++) {
+        let enemy = enemies[i];
+        enemy.y += enemySpeed;
+
+        // 적이 화면 밖으로 나가면 게임 종료
+        if (enemy.y > canvas.height) {
+            gameOver = true;
+        }
+
+        // 적 그리기
+        ctx.fillStyle = "#FF0000";
+        ctx.fillRect(enemy.x, enemy.y, enemyWidth, enemyHeight);
+
+        // 충돌 감지 (플레이어와 적)
+        if (
+            player.x < enemy.x + enemyWidth &&
+            player.x + player.width > enemy.x &&
+            player.y < enemy.y + enemyHeight &&
+            player.y + player.height > enemy.y
+        ) {
+            gameOver = true;
+        }
+    }
+}
+
+// 총알 업데이트 및 그리기
+function updateBullets() {
+    for (let i = 0; i < bullets.length; i++) {
+        let bullet = bullets[i];
+        bullet.y -= bulletSpeed;
+
+        // 화면 밖으로 나간 총알 제거
+        if (bullet.y + bulletHeight < 0) {
+            bullets.splice(i, 1);
+            i--;
+        }
+
+        // 총알 그리기
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(bullet.x, bullet.y, bulletWidth, bulletHeight);
+
+        // 총알과 적 충돌 처리
+        for (let j = 0; j < enemies.length; j++) {
+            let enemy = enemies[j];
+            if (
+                bullet.x < enemy.x + enemyWidth &&
+                bullet.x + bulletWidth > enemy.x &&
+                bullet.y < enemy.y + enemyHeight &&
+                bullet.y + bulletHeight > enemy.y
+            ) {
+                // 적 제거
+                enemies.splice(j, 1);
+                j--;
+                // 총알 제거
+                bullets.splice(i, 1);
+                i--;
+                // 점수 증가
+                score++;
+                break;
+            }
+        }
+    }
+}
+
+// 플레이어 이동 및 그리기
+function updatePlayer() {
+    ctx.fillStyle = "#00FF00";
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+}
+
+// 게임 루프
+function gameLoop() {
+    if (gameOver) {
+        alert(`Game Over! Your score: ${score}`);
+        document.location.reload();
+        return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    updatePlayer();
+    updateBullets();
+    updateEnemies();
+
+    requestAnimationFrame(gameLoop);
+}
+
+// 터치로 총알 발사
+canvas.addEventListener("touchstart", shoot, false);
+
+// 좌우로 이동 (좌우 터치에 따라)
+canvas.addEventListener("touchmove", function(e) {
+    const touchX = e.touches[0].clientX;
+    if (touchX < canvas.width && touchX > 0) {
+        player.x = touchX - player.width / 2;
+    }
+}, false);
+
+// 일정 간격으로 적 생성
+setInterval(createEnemy, enemyGap);
+
+// 게임 시작
+gameLoop();
+</script>
+</body>
+</html>
