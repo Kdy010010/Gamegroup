@@ -7,15 +7,40 @@
     <style>
         canvas { display: block; margin: 0 auto; background: #000; }
         body { margin: 0; overflow: hidden; }
+
+        /* 버튼 스타일 */
+        .control-btn {
+            position: fixed;
+            width: 80px;
+            height: 80px;
+            background-color: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            border: none;
+            font-size: 24px;
+            color: black;
+            z-index: 10;
+        }
+
+        /* 버튼 위치 */
+        #btn-forward { bottom: 100px; left: 40px; }
+        #btn-backward { bottom: 20px; left: 40px; }
+        #btn-left { bottom: 60px; right: 140px; }
+        #btn-right { bottom: 60px; right: 60px; }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
+
+    <!-- 컨트롤 버튼들 -->
+    <button id="btn-forward" class="control-btn">▲</button>
+    <button id="btn-backward" class="control-btn">▼</button>
+    <button id="btn-left" class="control-btn">◀</button>
+    <button id="btn-right" class="control-btn">▶</button>
+
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // 캔버스 크기를 창 크기에 맞추기
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -53,7 +78,6 @@
         ];
         const enemyBullets = [];
 
-        // 레이캐스팅 및 벽 그리기 함수
         function castRays() {
             for (let i = 0; i < NUM_RAYS; i++) {
                 let rayAngle = (player.angle - FOV / 2) + (i / NUM_RAYS) * FOV;
@@ -153,43 +177,33 @@
             ctx.fillText('Health: ' + player.health, 20, 30);
         }
 
-        // 모바일 터치 처리
-        let isTouching = false;
-        let touchStartX = 0;
-        let touchStartY = 0;
+        // 버튼 제어를 위한 상태
+        let moveForward = false;
+        let moveBackward = false;
+        let rotateLeft = false;
+        let rotateRight = false;
 
-        canvas.addEventListener('touchstart', function(e) {
-            isTouching = true;
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        });
+        // 버튼 제어: 이동 및 회전
+        document.getElementById('btn-forward').addEventListener('mousedown', () => moveForward = true);
+        document.getElementById('btn-forward').addEventListener('mouseup', () => moveForward = false);
+        document.getElementById('btn-backward').addEventListener('mousedown', () => moveBackward = true);
+        document.getElementById('btn-backward').addEventListener('mouseup', () => moveBackward = false);
+        document.getElementById('btn-left').addEventListener('mousedown', () => rotateLeft = true);
+        document.getElementById('btn-left').addEventListener('mouseup', () => rotateLeft = false);
+        document.getElementById('btn-right').addEventListener('mousedown', () => rotateRight = true);
+        document.getElementById('btn-right').addEventListener('mouseup', () => rotateRight = false);
 
-        canvas.addEventListener('touchmove', function(e) {
-            if (!isTouching) return;
+        // 모바일 터치 지원을 위한 touchstart/touchend 추가
+        document.getElementById('btn-forward').addEventListener('touchstart', () => moveForward = true);
+        document.getElementById('btn-forward').addEventListener('touchend', () => moveForward = false);
+        document.getElementById('btn-backward').addEventListener('touchstart', () => moveBackward = true);
+        document.getElementById('btn-backward').addEventListener('touchend', () => moveBackward = false);
+        document.getElementById('btn-left').addEventListener('touchstart', () => rotateLeft = true);
+        document.getElementById('btn-left').addEventListener('touchend', () => rotateLeft = false);
+        document.getElementById('btn-right').addEventListener('touchstart', () => rotateRight = true);
+        document.getElementById('btn-right').addEventListener('touchend', () => rotateRight = false);
 
-            let touchX = e.touches[0].clientX;
-            let touchY = e.touches[0].clientY;
-            let dx = touchX - touchStartX;
-            let dy = touchY - touchStartY;
-
-            if (Math.abs(dx) > Math.abs(dy)) {
-                // 좌우 드래그는 플레이어 회전
-                player.angle += dx * 0.003;  // 회전 속도 조정
-            } else {
-                // 위아래 드래그는 전진/후진
-                player.x += Math.cos(player.angle) * SPEED * (dy < 0 ? 1 : -1);
-                player.y += Math.sin(player.angle) * SPEED * (dy < 0 ? 1 : -1);
-            }
-
-            touchStartX = touchX;
-            touchStartY = touchY;
-        });
-
-        canvas.addEventListener('touchend', function() {
-            isTouching = false;
-        });
-
-        // 게임 루프
+        // 메인 게임 루프
         function update() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             castRays();
@@ -197,6 +211,22 @@
             updateEnemyBullets();
             updateEnemies();
             drawHUD();
+
+            // 버튼 입력에 따라 플레이어 이동 및 회전
+            if (moveForward) {
+                player.x += Math.cos(player.angle) * SPEED;
+                player.y += Math.sin(player.angle) * SPEED;
+            }
+            if (moveBackward) {
+                player.x -= Math.cos(player.angle) * SPEED;
+                player.y -= Math.sin(player.angle) * SPEED;
+            }
+            if (rotateLeft) {
+                player.angle -= 0.05;
+            }
+            if (rotateRight) {
+                player.angle += 0.05;
+            }
 
             if (player.health > 0) {
                 requestAnimationFrame(update);
@@ -206,23 +236,6 @@
                 ctx.fillText('GAME OVER', canvas.width / 2 - 150, canvas.height / 2);
             }
         }
-
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp') {
-                player.x += Math.cos(player.angle) * SPEED;
-                player.y += Math.sin(player.angle) * SPEED;
-            }
-            if (e.key === 'ArrowDown') {
-                player.x -= Math.cos(player.angle) * SPEED;
-                player.y -= Math.sin(player.angle) * SPEED;
-            }
-            if (e.key === 'ArrowLeft') {
-                player.angle -= 0.1;
-            }
-            if (e.key === 'ArrowRight') {
-                player.angle += 0.1;
-            }
-        });
 
         window.addEventListener('click', () => {
             bullets.push({
