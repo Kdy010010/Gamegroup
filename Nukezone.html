@@ -26,6 +26,7 @@
         #btn-backward { bottom: 20px; left: 40px; }
         #btn-left { bottom: 60px; right: 140px; }
         #btn-right { bottom: 60px; right: 60px; }
+        #btn-shoot { bottom: 60px; right: 240px; background-color: rgba(255, 0, 0, 0.7); }
     </style>
 </head>
 <body>
@@ -36,6 +37,7 @@
     <button id="btn-backward" class="control-btn">▼</button>
     <button id="btn-left" class="control-btn">◀</button>
     <button id="btn-right" class="control-btn">▶</button>
+    <button id="btn-shoot" class="control-btn">Shoot</button>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -72,12 +74,13 @@
             map.push(row);
         }
 
-        let bullets = [];
+        let playerBullets = [];
+        let enemyBullets = [];
         let enemies = [
             { x: TILE_SIZE * 50, y: TILE_SIZE * 50, alive: true, shootCooldown: 0 }
         ];
-        const enemyBullets = [];
 
+        // 레이캐스팅 및 벽 그리기
         function castRays() {
             for (let i = 0; i < NUM_RAYS; i++) {
                 let rayAngle = (player.angle - FOV / 2) + (i / NUM_RAYS) * FOV;
@@ -106,32 +109,27 @@
             ctx.fillRect(i, canvas.height / 2 - lineHeight / 2, 1, lineHeight);
         }
 
-        function updateBullets() {
-            for (let i = 0; i < bullets.length; i++) {
-                bullets[i].x += Math.cos(bullets[i].angle) * SPEED * 3;
-                bullets[i].y += Math.sin(bullets[i].angle) * SPEED * 3;
+        // 플레이어 총알 업데이트
+        function updatePlayerBullets() {
+            for (let i = 0; i < playerBullets.length; i++) {
+                playerBullets[i].x += Math.cos(playerBullets[i].angle) * SPEED * 5;
+                playerBullets[i].y += Math.sin(playerBullets[i].angle) * SPEED * 5;
                 ctx.fillStyle = 'red';
-                ctx.fillRect(bullets[i].x, bullets[i].y, 5, 5);
+                ctx.fillRect(playerBullets[i].x, playerBullets[i].y, 5, 5);
 
-                if (map[Math.floor(bullets[i].y / TILE_SIZE)][Math.floor(bullets[i].x / TILE_SIZE)] === 1) {
-                    bullets.splice(i, 1);
+                // 벽에 부딪히면 총알 제거
+                if (map[Math.floor(playerBullets[i].y / TILE_SIZE)][Math.floor(playerBullets[i].x / TILE_SIZE)] === 1) {
+                    playerBullets.splice(i, 1);
                     i--;
                 }
             }
         }
 
-        function enemyShoot(enemy) {
-            if (enemy.shootCooldown === 0) {
-                let angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-                enemyBullets.push({ x: enemy.x, y: enemy.y, angle: angle });
-                enemy.shootCooldown = 100;
-            }
-        }
-
+        // 적 총알 업데이트
         function updateEnemyBullets() {
             enemyBullets.forEach((bullet, index) => {
-                bullet.x += Math.cos(bullet.angle) * 5;
-                bullet.y += Math.sin(bullet.angle) * 5;
+                bullet.x += Math.cos(bullet.angle) * SPEED * 5;
+                bullet.y += Math.sin(bullet.angle) * SPEED * 5;
 
                 ctx.fillStyle = 'blue';
                 ctx.fillRect(bullet.x, bullet.y, 5, 5);
@@ -147,6 +145,16 @@
             });
         }
 
+        // 적 사격 함수
+        function enemyShoot(enemy) {
+            if (enemy.shootCooldown === 0) {
+                let angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                enemyBullets.push({ x: enemy.x, y: enemy.y, angle: angle });
+                enemy.shootCooldown = 100;  // 사격 후 대기 시간
+            }
+        }
+
+        // 적 업데이트
         function updateEnemies() {
             enemies.forEach(enemy => {
                 if (enemy.alive) {
@@ -157,7 +165,6 @@
                     if (dist < 300) {
                         enemy.x += dx / dist;
                         enemy.y += dy / dist;
-
                         enemyShoot(enemy);
                     }
 
@@ -192,6 +199,13 @@
         document.getElementById('btn-left').addEventListener('mouseup', () => rotateLeft = false);
         document.getElementById('btn-right').addEventListener('mousedown', () => rotateRight = true);
         document.getElementById('btn-right').addEventListener('mouseup', () => rotateRight = false);
+        document.getElementById('btn-shoot').addEventListener('mousedown', () => {
+            playerBullets.push({
+                x: player.x,
+                y: player.y,
+                angle: player.angle
+            });
+        });
 
         // 모바일 터치 지원을 위한 touchstart/touchend 추가
         document.getElementById('btn-forward').addEventListener('touchstart', () => moveForward = true);
@@ -202,12 +216,19 @@
         document.getElementById('btn-left').addEventListener('touchend', () => rotateLeft = false);
         document.getElementById('btn-right').addEventListener('touchstart', () => rotateRight = true);
         document.getElementById('btn-right').addEventListener('touchend', () => rotateRight = false);
+        document.getElementById('btn-shoot').addEventListener('touchstart', () => {
+            playerBullets.push({
+                x: player.x,
+                y: player.y,
+                angle: player.angle
+            });
+        });
 
         // 메인 게임 루프
         function update() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             castRays();
-            updateBullets();
+            updatePlayerBullets();
             updateEnemyBullets();
             updateEnemies();
             drawHUD();
@@ -236,14 +257,6 @@
                 ctx.fillText('GAME OVER', canvas.width / 2 - 150, canvas.height / 2);
             }
         }
-
-        window.addEventListener('click', () => {
-            bullets.push({
-                x: player.x,
-                y: player.y,
-                angle: player.angle
-            });
-        });
 
         update();
     </script>
